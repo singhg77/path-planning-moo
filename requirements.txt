@@ -1,0 +1,8 @@
+dash>=2.14
+plotly>=5.18
+numpy>=1.24,<2
+pymoo==0.6.1.4
+pulp>=3.0
+scipy
+matplotlib
+gunicorn
