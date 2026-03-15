@@ -979,7 +979,10 @@ def reoptimize(n_clicks, storms):
         WEATHER[i]["center"] = np.array(s["center"])
         WEATHER[i]["radius"] = s["radius"]
 
-    new_F, new_X = _run_nsga2(pop=120, ngen=100)
+    try:
+        new_F, new_X = _run_nsga2(pop=120, ngen=100)
+    except RuntimeError:
+        raise PreventUpdate  # pymoo unavailable — keep current front
     return (
         {"F": new_F.tolist(), "X": new_X.tolist()},
         f" Done — {len(new_F)} Pareto solutions",

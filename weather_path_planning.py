@@ -48,13 +48,17 @@ from matplotlib.widgets import Slider, Button
 from mpl_toolkits.mplot3d import Axes3D      # noqa: F401
 from scipy.interpolate import RectBivariateSpline
 
-from pymoo.core.problem  import Problem
-from pymoo.core.sampling import Sampling
-from pymoo.algorithms.moo.nsga2 import NSGA2
-from pymoo.operators.crossover.sbx import SBX
-from pymoo.operators.mutation.pm  import PM
-from pymoo.optimize   import minimize
-from pymoo.decomposition.asf import ASF
+try:
+    from pymoo.core.problem  import Problem
+    from pymoo.core.sampling import Sampling
+    from pymoo.algorithms.moo.nsga2 import NSGA2
+    from pymoo.operators.crossover.sbx import SBX
+    from pymoo.operators.mutation.pm  import PM
+    from pymoo.optimize   import minimize
+    from pymoo.decomposition.asf import ASF
+    _PYMOO_AVAILABLE = True
+except ImportError:  # pragma: no cover – pymoo optional on server deployments
+    _PYMOO_AVAILABLE = False
 
 warnings.filterwarnings("ignore")
 
@@ -246,7 +250,9 @@ def evaluate_path(path: np.ndarray) -> Tuple[float, float, float]:
 
 # ── PYMOO PROBLEM ─────────────────────────────────────────────────────────────
 
-class WeatherPathProblem(Problem):
+_Base = Problem if _PYMOO_AVAILABLE else object
+
+class WeatherPathProblem(_Base):
     def __init__(self) -> None:
         xl = np.tile([X_BOUNDS[0], Y_BOUNDS[0], MIN_AGL], N_WP)
         xu = np.tile([X_BOUNDS[1], Y_BOUNDS[1], MAX_AGL], N_WP)
@@ -263,7 +269,9 @@ class WeatherPathProblem(Problem):
 
 # ── WARM-START SAMPLING ───────────────────────────────────────────────────────
 
-class RouteSampling(Sampling):
+_SamplingBase = Sampling if _PYMOO_AVAILABLE else object
+
+class RouteSampling(_SamplingBase):
     """Seed near straight SOURCE→DEST line; AGL drawn from ideal band."""
     def _do(self, problem: Problem, n_samples: int, **kwargs) -> np.ndarray:
         xl, xu = problem.xl, problem.xu
@@ -309,7 +317,10 @@ def _best_idx(F: np.ndarray, w: np.ndarray) -> int:
     F_min   = F.min(axis=0)
     F_range = np.maximum(F.max(axis=0) - F_min, 1e-9)
     F_norm  = (F - F_min) / F_range          # each objective in [0, 1]
-    return int(ASF().do(F_norm, 1.0 / w).argmin())
+    if _PYMOO_AVAILABLE:
+        return int(ASF().do(F_norm, 1.0 / w).argmin())
+    # Fallback: weighted Chebyshev scalarisation (no pymoo needed)
+    return int(np.max(F_norm * w, axis=1).argmin())
 
 
 # ── INTERACTIVE FIGURE ────────────────────────────────────────────────────────
@@ -317,11 +328,13 @@ def _best_idx(F: np.ndarray, w: np.ndarray) -> int:
 def _run_nsga2(pop: int = 100, ngen: int = 80, seed: int = 42) -> tuple:
     """Run NSGA-II with current WEATHER positions; return (F, X).
 
-    A fixed seed makes repeated Re-optimize calls with the same storm positions
-    and parameters deterministic.  NSGA-II is stochastic (random initialisation,
-    crossover, mutation) — without a fixed seed each call explores a different
-    random trajectory and produces a different Pareto front.
+    Requires pymoo.  Raises RuntimeError if pymoo is not installed.
     """
+    if not _PYMOO_AVAILABLE:
+        raise RuntimeError(
+            "pymoo is not installed — Re-optimize is unavailable. "
+            "Use the pre-computed Pareto front loaded from path_results.npz."
+        )
     # pymoo 0.6 does not seed numpy's global RNG — seed it explicitly so that
     # RouteSampling (which calls np.random.normal / np.random.uniform) is also
     # deterministic.  Same storm positions + same seed → identical Pareto front.
