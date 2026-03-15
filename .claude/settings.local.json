@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''weather_path_planning.py''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)",
+      "Bash(python3 -c \"import numpy; print\\(numpy.__version__\\)\")",
+      "Bash(python3 -c \"import matplotlib; print\\(matplotlib.__version__\\)\")",
+      "Bash(python3 -c \"import numpy; print\\(numpy.__version__\\); import matplotlib; print\\(matplotlib.__version__\\)\")",
+      "Bash(echo \"DISPLAY=$DISPLAY\")",
+      "Bash(python3 -c \"import matplotlib; matplotlib.use\\(''TkAgg''\\); print\\(''TkAgg OK''\\)\")",
+      "Bash(python3 -c \"import matplotlib; matplotlib.use\\(''Qt5Agg''\\); print\\(''Qt5Agg OK''\\)\")",
+      "Bash(MPLBACKEND=Agg python3 - <<'EOF':*)",
+      "Bash(python3 -:*)",
+      "Bash(python3 -c \"import pulp; print\\(''''pulp'''', pulp.__version__\\)\")",
+      "Bash(timeout 60 python3 -c \":*)"
+    ]
+  }
+}
